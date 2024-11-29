@@ -1,5 +1,6 @@
 import json
 from pyspark.sql import SparkSession
+import torch
 import pyspark as spark
 
 
@@ -13,12 +14,13 @@ if __name__ == '__main__':
 
     # Kafka Configuration
     kafka_config = config["kafka"]
+    spark_config = config['spark']
 
     # Create Spark Session
     spark_session = SparkSession.builder \
         .appName("KafkaStreamExample") \
         .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1') \
-        .master("spark://nguyen-Lenovo-ThinkBook-14p-Gen-2:7077") \
+        .master(f"spark://{spark_config['master']}") \
         .getOrCreate()
 
     # Read the Kafka stream
@@ -36,6 +38,7 @@ if __name__ == '__main__':
         .outputMode("append") \
         .format("console") \
         .start()
-
+    model = torch.nn.Linear(1, 2)
+    output = model(kafka_data)
     # Wait for the streaming to finish
     query.awaitTermination()
