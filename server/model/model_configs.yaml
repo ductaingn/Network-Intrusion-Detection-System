@@ -1,0 +1,8 @@
+architecture:
+  input_dim: 
+  hidden_dim:
+  output_dim:
+
+class_mapping:
+  1: 'benign'
+  2: 'DDOS'

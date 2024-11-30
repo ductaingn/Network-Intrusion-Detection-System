@@ -38,7 +38,5 @@ if __name__ == '__main__':
         .outputMode("append") \
         .format("console") \
         .start()
-    model = torch.nn.Linear(1, 2)
-    output = model(kafka_data)
     # Wait for the streaming to finish
     query.awaitTermination()
