@@ -11,6 +11,11 @@
     },
     "spark": {
       "master": "nguyen-Lenovo-ThinkBook-14p-Gen-2:7077"   
+    },
+    "hadoop":{
+      "hdfs_server":"192.168.90.20:9000",
+      "write_location":"/user/hadoop/test",
+      "checkpoint_location":"/user/hadoop/test/checkpoint"
     }
 }
   
