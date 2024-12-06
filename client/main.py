@@ -17,13 +17,6 @@ if __name__ == '__main__':
     kafka_config = config["kafka"]
     pyshark_config = config["pyshark"]
 
-    # producer = KafkaProducer(
-    #     bootstrap_servers=kafka_config['bootstrap_servers'],
-    #     value_serializer=lambda v: v.encode(
-    #         'utf-8'),
-    #     key_serializer=lambda k: k.encode('utf-8')  # Serialize key as UTF-8
-    # )
-
     producer = Producer(kafka_config)
 
     pysharkLivecapture = PysharkLiveCapture(

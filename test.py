@@ -1,23 +1,8 @@
-import pyshark
-import json
-# Define a function to extract fields as a dictionary
+from hdfs import InsecureClient
 
+client = InsecureClient('http://192.168.90.20:50070', user='hadoop')
 
-def extract_fields(packet):
-    field_dict = {}
-    for layer in packet.layers:
-        layer_name = layer.layer_name
-        field_dict[layer_name] = {}
-        for field in layer.field_names:
-            field_dict[layer_name][field] = getattr(layer, field, None)
-    return field_dict
+hdfs_file = '/user/hadoop/test/testing.csv'
+local_path = '/home/nguyen/Downloads/testing.csv'
 
-
-# Start live capture and filter specific fields (e.g., only TCP packets)
-capture = pyshark.LiveCapture(interface='wlp1s0', display_filter='tcp')
-
-# Process packets
-# Adjust count or use infinite loop
-for packet in capture.sniff_continuously(packet_count=1):
-    fields = extract_fields(packet)
-    print(json.dumps(fields))  # Print fields as a dictionary
+client.download(hdfs_path=hdfs_file, local_path=local_path)
