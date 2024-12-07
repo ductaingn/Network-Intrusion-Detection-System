@@ -7,7 +7,7 @@ class PysharkLiveCapture(object):
         self.interface = interface
         self.send_every = send_every
         self.send_format = send_format
-        self.livecapture: ps.LiveCapture = ps.LiveCapture(interface)
+        self.livecapture: ps.LiveCapture = ps.LiveCapture(interface, use_json=True, include_raw=True)
 
     def format_packet(self, packet):
         if self.send_format == 'str':
