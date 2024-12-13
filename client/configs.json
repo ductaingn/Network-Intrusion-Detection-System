@@ -1,11 +1,11 @@
 {
     "kafka": {
-      "bootstrap_servers": "192.168.90.28:9092",
-      "topic": "testing"
+      "bootstrap_servers": "localhost:9092",
+      "topic": "test"
     },
     "pyshark": {
       "interface": "wlp1s0",
-      "send_every": 10,
+      "send_every": 1,
       "send_format": "json",
       "bpf_filter": "tcp"
     }

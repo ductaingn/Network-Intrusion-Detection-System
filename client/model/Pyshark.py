@@ -14,8 +14,5 @@ class PysharkLiveCapture(object):
             return str(packet)
         if self.send_format == 'json':
             return json.dumps({
-                'timestamp': packet.sniff_time.isoformat(),
-                'protocol': packet.highest_layer,
                 'length': packet.length,
-                'info': str(packet)
             })

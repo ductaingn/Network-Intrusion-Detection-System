@@ -1,16 +1,16 @@
 '''
 Attack Classifier model
 '''
-# YOUR CODE HERE!
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
+import pandas as pd
 
 
 class Classifier(nn.Module):
-    def __init__(self, input_dim, output_dim, mapper):
-
+    def __init__(self, input_dim, output_dim, mapper, leaning_rate):
         super(Classifier, self).__init__()
         self.fc1 = nn.Linear(input_dim, 64)
         self.fc2 = nn.Linear(64, 32)
@@ -18,7 +18,7 @@ class Classifier(nn.Module):
         self.output = nn.Linear(16, output_dim)
 
         self.mapper = mapper
-        self.criterion = nn.BCEWithLogitsLoss()
+        self.criterion = nn.CrossEntropyLoss()     # Use CrossEntropyLoss instead!
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -46,30 +46,62 @@ class Classifier(nn.Module):
         class_name = [self.mapper[index.item()+1] for index in class_idx]
         return class_name
 
-
-    def train(self, train_loader, epochs, lr):
+    def train(self, data:pd.DataFrame, batch_size, epochs, optimizer:optim.optimizer.Optimizer, save_path):  # Code Dataset and DataLoader!
         '''
         Train model
 
         Parameter:
-        > train_loader: DataLoader
+        > data: data
+        > batch_size: batch size used to train model
         > epochs: number of epochs
-        > lr: learning rate
+        > optimizer: optimizer
+        > save_path: path to save model and optimizer state dict
 
         Return None
         '''
-        optimizer = optim.Adam(self.parameters(), lr=lr)
+        dataset = IDSDataset(data)
+        train_loader = DataLoader(dataset, batch_size)
+        
+        self.train()
         for epoch in range(epochs):
-            self.train()
             epoch_loss = 0
-            
+
             for batch_X, batch_y in train_loader:
                 optimizer.zero_grad()
                 predictions = self(batch_X)
                 loss = self.criterion(predictions, batch_y)
                 loss.backward()
                 optimizer.step()
-                
+
                 epoch_loss += loss.item()
-                
-        F.save(self.state_dict(), "path/to/model.pth")
+
+        try:
+            torch.save(
+                {
+                    'model_state_dict': self.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                }
+                , save_path)
+
+        except Exception as e:
+            print('Error occured while trying to save model!')
+            print(e)
+
+
+class IDSDataset(Dataset):
+    '''
+    Dataset for Classifier model
+    '''
+    def __init__(self, dataset:pd.DataFrame):
+        super(IDSDataset, self).__init__()
+        self.dataset = dataset
+
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        x = self.dataset.iloc[index][:-1]
+        y = self.dataset.iloc[index][-1]
+
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
