@@ -1,5 +1,4 @@
 import json
-from typing import Iterable
 
 from pyshark.packet.packet import Packet as PysharkPacket
 from scapy.packet import Packet as ScapyPacket
@@ -41,9 +40,9 @@ class DataFrameWriter:
             self.first_write = False
             for key in data.keys():
                 self.output[key] = [str(data[key])]
-
-        for key in data.keys():
-            self.output[key].append(str(data[key]))
+        else:
+            for key in data.keys():
+                self.output[key].append(str(data[key]))
 
 
 class PacketAnalyzer:
