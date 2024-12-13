@@ -1,7 +1,7 @@
 {
     "kafka": {
-      "bootstrap_servers": "192.168.90.28:9092",
-      "topic": "testing"
+      "bootstrap_servers": "localhost:9092",
+      "topic": "test"
     },
     "pyshark": {
       "interface": "wlp1s0",
@@ -11,6 +11,11 @@
     },
     "spark": {
       "master": "nguyen-Lenovo-ThinkBook-14p-Gen-2:7077"   
+    },
+    "hadoop":{
+      "hdfs_server":"192.168.90.20:9000",
+      "write_location":"/user/hadoop/test",
+      "checkpoint_location":"/user/hadoop/test/checkpoint"
     }
 }
   

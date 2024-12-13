@@ -2,6 +2,8 @@ import json
 from pyspark.sql import SparkSession
 import torch
 import pyspark as spark
+import os
+os.environ['HADOOP_USER_NAME'] = 'hadoop'
 
 
 def load_config(config_file):
@@ -15,6 +17,7 @@ if __name__ == '__main__':
     # Kafka Configuration
     kafka_config = config["kafka"]
     spark_config = config['spark']
+    hadoop_config = config['hadoop']
 
     # Create Spark Session
     spark_session = SparkSession.builder \
@@ -39,4 +42,14 @@ if __name__ == '__main__':
         .format("console") \
         .start()
     # Wait for the streaming to finish
+    query.awaitTermination()
+
+    # Write to HDFS
+    query = kafka_data.writeStream \
+        .outputMode("append") \
+        .format("csv")  \
+        .option("path", f'hdfs://{hadoop_config['hdfs_server']}/{hadoop_config['write_location']}') \
+        .option("checkpointLocation", f'hdfs://{hadoop_config['hdfs_server']}/{hadoop_config['checkpoint_location']}') \
+        .start()
+
     query.awaitTermination()

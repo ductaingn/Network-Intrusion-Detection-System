@@ -5,7 +5,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import MapType, StringType
 from model.Classifier import Classifier
-from utils import parse_json, load_config, transform_data, output_results
+from server.utillities import parse_json, load_config, transform_data, output_results
 
 
 def preprocess(batch_data) -> list[torch.Tensor, list]:
