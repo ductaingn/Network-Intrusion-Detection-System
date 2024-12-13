@@ -1,5 +1,5 @@
 import json
-from client.model.PacketAnalyzer import PacketAnalyzer
+from model.PacketAnalyzer import PacketAnalyzer
 from model.Pyshark import PysharkLiveCapture
 from model.Producer import Producer
 
@@ -32,19 +32,23 @@ if __name__ == '__main__':
 
     analyzer = PacketAnalyzer()
 
-    for i, packet in enumerate(pysharkLivecapture.livecapture.sniff_continuously()):
-        try:
+    while True:
+        for i, packet in enumerate(pysharkLivecapture.livecapture.sniff_continuously(pysharkLivecapture.send_every)):
             analyzer.add_packet(packet)
             print(f"Received packet {i}.")
 
-            if i > 0 and i % pysharkLivecapture.send_every == 0:
-                result = analyzer.collect_result()
-                producer.send_data(key=f'testing_key_{i}', value=result)
+        try:
+            result = analyzer.collect_result()
+            if result == '{}':
+                continue
 
-                print(f"Analyzed packets collected and sent successfully.")
-                print(result)
-                break
+            producer.send_data(key=f'testing_key_{i}', value=result)
+
+            print(f"Analyzed packets collected and sent successfully.")
+            print(result)
         except Exception as e:
             print(f"Error sending at packet {i}: {e}")
+
+        break
 
     producer.kafka_producer.flush()  # Ensure all messages are sent before exiting
