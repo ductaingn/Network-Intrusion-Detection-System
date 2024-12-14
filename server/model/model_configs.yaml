@@ -1,7 +1,7 @@
 architecture:
-  input_dim: 
+  input_dim: 52
   hidden_dim:
-  output_dim:
+  output_dim: 13
 
 mapper:
   1: 'benign'
