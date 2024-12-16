@@ -18,15 +18,16 @@ class Classifier(nn.Module):
         self.output = nn.Linear(16, output_dim)
 
         self.mapper = mapper
-        self.criterion = nn.CrossEntropyLoss()     # Use CrossEntropyLoss instead!
+        self.criterion = nn.CrossEntropyLoss()
+        self.learning_rate = leaning_rate
+        self.output_dim = output_dim
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
 
-        prop = F.softmax(x, dim=1)
-        return prop, self.get_class(prop)
+        return self.output(x)
 
     def get_class(self, probability):
         '''
@@ -46,7 +47,7 @@ class Classifier(nn.Module):
         class_name = [self.mapper[index.item()+1] for index in class_idx]
         return class_name
 
-    def train(self, data:pd.DataFrame, batch_size, epochs, optimizer:optim.optimizer.Optimizer, save_path):  # Code Dataset and DataLoader!
+    def train_model(self, data:pd.DataFrame, batch_size, epochs, optimizer:optim.Optimizer, save_path):
         '''
         Train model
 
@@ -59,7 +60,7 @@ class Classifier(nn.Module):
 
         Return None
         '''
-        dataset = IDSDataset(data)
+        dataset = IDSDataset(data, self.output_dim)
         train_loader = DataLoader(dataset, batch_size)
         
         self.train()
@@ -74,6 +75,7 @@ class Classifier(nn.Module):
                 optimizer.step()
 
                 epoch_loss += loss.item()
+            print("Epoch: {} Loss: {}".format(epoch, epoch_loss))
 
         try:
             torch.save(
@@ -92,16 +94,16 @@ class IDSDataset(Dataset):
     '''
     Dataset for Classifier model
     '''
-    def __init__(self, dataset:pd.DataFrame):
+    def __init__(self, dataset:pd.DataFrame, output_dim):
         super(IDSDataset, self).__init__()
         self.dataset = dataset
-
+        self.output_dim = output_dim
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, index):
-        x = self.dataset.iloc[index][:-1]
-        y = self.dataset.iloc[index][-1]
-
-        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+        x = self.dataset.iloc[index, :-self.output_dim].values
+        y = self.dataset.iloc[index, -self.output_dim]
+    
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.long)

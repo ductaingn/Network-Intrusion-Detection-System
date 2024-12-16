@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # Load the PyTorch model
     model = Classifier(
         model_config['input_dim'], model_config['output_dim'], model_config['mapper'])
-    model.load_state_dict(torch.load("path/to/model.pth"))
+    model.load_state_dict(torch.load("model/model.pth"))
     model.eval()  # Set model to evaluation mode
 
     # Read the Kafka stream
