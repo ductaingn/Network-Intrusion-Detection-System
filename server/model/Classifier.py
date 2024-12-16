@@ -1,37 +1,33 @@
 '''
 Attack Classifier model
 '''
-import pandas as pd
-from sklearn.discriminant_analysis import StandardScaler
-from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
+import pandas as pd
 
 
 class Classifier(nn.Module):
-    def __init__(self, input_dim, output_dim, mapper):
-
+    def __init__(self, input_dim, output_dim, mapper, leaning_rate):
         super(Classifier, self).__init__()
         self.fc1 = nn.Linear(input_dim, 64)
         self.fc2 = nn.Linear(64, 32)
         self.fc3 = nn.Linear(32, 16)
         self.output = nn.Linear(16, output_dim)
 
-        self.input_dim = input_dim
-        self.output_dim = output_dim
         self.mapper = mapper
-        self.criterion = nn.BCEWithLogitsLoss()
-        self.batch_size = 32
+        self.criterion = nn.CrossEntropyLoss()
+        self.learning_rate = leaning_rate
+        self.output_dim = output_dim
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
 
-        prop = F.softmax(self.output(x), dim=1)
-        return prop
+        return self.output(x)
 
     def get_class(self, probability):
         '''
@@ -51,79 +47,63 @@ class Classifier(nn.Module):
         class_name = [self.mapper[index.item()+1] for index in class_idx]
         return class_name
 
-
-    def train_model(self, train_loader, epochs, lr):
+    def train_model(self, data:pd.DataFrame, batch_size, epochs, optimizer:optim.Optimizer, save_path):
         '''
         Train model
 
         Parameter:
-        > train_loader: DataLoader
+        > data: data
+        > batch_size: batch size used to train model
         > epochs: number of epochs
-        > lr: learning rate
+        > optimizer: optimizer
+        > save_path: path to save model and optimizer state dict
 
         Return None
         '''
-        optimizer = optim.Adam(self.parameters(), lr=lr)
-        loss_fn = self.criterion
+        dataset = IDSDataset(data, self.output_dim)
+        train_loader = DataLoader(dataset, batch_size)
+        
+        self.train()
         for epoch in range(epochs):
-            self.train()
             epoch_loss = 0
-            
+
             for batch_X, batch_y in train_loader:
                 optimizer.zero_grad()
                 predictions = self(batch_X)
-                loss = loss_fn(predictions, batch_y)
+                loss = self.criterion(predictions, batch_y)
                 loss.backward()
                 optimizer.step()
-                
+
                 epoch_loss += loss.item()
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {epoch_loss:.4f}")
-                
-        torch.save(self.state_dict(), "model/model.pth")
+            print("Epoch: {} Loss: {}".format(epoch, epoch_loss))
 
-    def load_data(self, path):
-        df = pd.read_csv(path)
-        X = df.iloc[:, :-self.output_dim]
-        y = df.iloc[:, -self.output_dim:]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        try:
+            torch.save(
+                {
+                    'model_state_dict': self.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                }
+                , save_path)
 
-        scaler = StandardScaler()
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
+        except Exception as e:
+            print('Error occured while trying to save model!')
+            print(e)
 
-        y_train = y_train.to_numpy()
-        y_test = y_test.to_numpy()
 
-        X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-        X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-        y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
-        y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
+class IDSDataset(Dataset):
+    '''
+    Dataset for Classifier model
+    '''
+    def __init__(self, dataset:pd.DataFrame, output_dim):
+        super(IDSDataset, self).__init__()
+        self.dataset = dataset
+        self.output_dim = output_dim
 
-        self.X_test_tensor = X_test_tensor
-        self.y_test_tensor = y_test_tensor
-        
-        train_data = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
-        train_loader = torch.utils.data.DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
-        return train_loader
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        x = self.dataset.iloc[index, :-self.output_dim].values
+        y = self.dataset.iloc[index, -self.output_dim]
     
-    def evaluate(self):
-        '''
-        Evaluate model
-
-        Return None
-        '''
-        self.eval()
-        with torch.no_grad():
-            test_predictions = self(self.X_test_tensor)
-            test_predictions = (test_predictions >= 0.5).float()
-        
-            loss = self.criterion(test_predictions, self.y_test_tensor)
-            correct_per_sample = test_predictions.eq(self.y_test_tensor).sum(dim=1)
-            total_labels_per_sample = self.y_test_tensor.size(1)
-            accuracy_per_sample = correct_per_sample / total_labels_per_sample
-            accuracy = accuracy_per_sample.mean().item()
-        
-            print(f"Loss: {loss:.4f}")
-            print(f"F1 Score: {self.f1_score(test_predictions, self.y_test_tensor)}")
-            print(f"Accuracy: {accuracy:.4f}")
-            
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.long)

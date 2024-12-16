@@ -3,6 +3,8 @@ architecture:
   hidden_dim:
   output_dim: 13
 
+learning_rate: 0.001
+
 mapper:
   1: 'benign'
   2: 'bot'

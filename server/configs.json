@@ -1,7 +1,7 @@
 {
     "kafka": {
-      "bootstrap_servers": "192.168.90.28:9092",
-      "topic": "testing"
+      "bootstrap_servers": "localhost:9092",
+      "topic": "test"
     },
     "pyshark": {
       "interface": "wlp1s0",
