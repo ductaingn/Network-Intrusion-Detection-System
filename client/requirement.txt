@@ -1,0 +1,5 @@
+requests
+scapy==2.5.0
+pyshark
+cicflowmeter
+kafka-python
