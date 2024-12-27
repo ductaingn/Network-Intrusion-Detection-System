@@ -38,14 +38,14 @@ if __name__ == '__main__':
             print(f"Received packet {i}.")
 
         try:
-            result = analyzer.collect_result()
-            if result == '{}':
+            result = analyzer.collect_results()
+            if not result:
                 continue
 
-            producer.send_data(key=f'testing_key_{i}', value=result)
+            for flow in result:
+                producer.send_data(key=f'testing_key_{i}', value=json.dumps(flow))
+                print('Sent', json.dumps(flow))
 
-            print(f"Analyzed packets collected and sent successfully.")
-            print(result)
         except Exception as e:
             print(f"Error sending at packet {i}: {e}")
 
