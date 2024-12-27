@@ -26,23 +26,16 @@ def pyshark2scapy(pyshark_packet: PysharkPacket) -> ScapyPacket:
     raise NotImplementedError(f'Unsupported first layer type: {first_layer_name}')
 
 
-class DataFrameWriter:
+class ListWriter:
     """
     Custom writer for cicflowmeter FlowSession, writes data into a dict that is convertable to pd.DataFrame
     """
 
-    def __init__(self, output):
+    def __init__(self, output: list[dict]):
         self.output = output
-        self.first_write = True
 
     def write(self, data: dict):
-        if self.first_write:
-            self.first_write = False
-            for key in data.keys():
-                self.output[key] = [str(data[key])]
-        else:
-            for key in data.keys():
-                self.output[key].append(str(data[key]))
+        self.output.append(data)
 
 
 class PacketAnalyzer:
@@ -51,19 +44,19 @@ class PacketAnalyzer:
     """
 
     def __init__(self):
-        self.data = {}
+        self.data = []
         self.session = FlowSession()
-        self.session.output_writer = DataFrameWriter(self.data)
+        self.session.output_writer = ListWriter(self.data)
 
     def add_packet(self, packet: PysharkPacket):
         self.session.on_packet_received(pyshark2scapy(packet))
 
-    def collect_result(self) -> str:
+    def collect_results(self) -> list[dict]:
         self.session.toPacketList()
-        result = json.dumps(self.data)
 
+        result = self.data.copy()
         self.data.clear()
         self.session = FlowSession()
-        self.session.output_writer = DataFrameWriter(self.data)
+        self.session.output_writer = ListWriter(self.data)
 
         return result
