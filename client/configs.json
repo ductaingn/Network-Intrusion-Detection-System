@@ -5,7 +5,7 @@
     },
     "pyshark": {
       "interface": "wlp1s0",
-      "send_every": 1,
+      "send_every": 10,
       "send_format": "json",
       "bpf_filter": "tcp"
     }

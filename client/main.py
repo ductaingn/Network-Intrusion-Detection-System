@@ -32,9 +32,14 @@ if __name__ == '__main__':
 
         try:
             result = analyzer.collect_result()
+            # print(packet.layers)
             if result == '{}':
+                print('Empty packet!')
                 continue
 
+            with open('inspect.json','wt') as file:
+                obj = json.dumps(result, indent = 4)
+                file.write(obj)
             producer.send_data(key=f'testing_key_{i}', value=result)
 
             print(f"Analyzed packets collected and sent successfully.")
@@ -42,6 +47,6 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Error sending at packet {i}: {e}")
 
-        break
+        # break
 
     producer.kafka_producer.flush()  # Ensure all messages are sent before exiting
