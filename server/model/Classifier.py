@@ -10,7 +10,7 @@ import pandas as pd
 
 
 class Classifier(nn.Module):
-    def __init__(self, input_dim, output_dim, mapper, leaning_rate):
+    def __init__(self, input_dim, output_dim, mapper, learning_rate):
         super(Classifier, self).__init__()
         self.fc1 = nn.Linear(input_dim, 64)
         self.fc2 = nn.Linear(64, 32)
@@ -19,7 +19,7 @@ class Classifier(nn.Module):
 
         self.mapper = mapper
         self.criterion = nn.CrossEntropyLoss()
-        self.learning_rate = leaning_rate
+        self.learning_rate = learning_rate
         self.output_dim = output_dim
 
     def forward(self, x):

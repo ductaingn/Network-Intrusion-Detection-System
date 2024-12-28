@@ -42,6 +42,6 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Error sending at packet {i}: {e}")
 
-        break
+        # break
 
     producer.kafka_producer.flush()  # Ensure all messages are sent before exiting
