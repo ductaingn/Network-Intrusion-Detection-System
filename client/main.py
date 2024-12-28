@@ -33,7 +33,6 @@ if __name__ == '__main__':
         try:
             result = analyzer.collect_results()
             if not result:
-                print('Empty packet!')
                 continue
 
             for flow in result:
