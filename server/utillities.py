@@ -1,7 +1,7 @@
 import json
 from pyspark.sql.functions import udf
 from pyspark.sql.types import MapType, StringType
-
+import yaml
 
 def parse_json(value):
     '''
@@ -14,12 +14,11 @@ def parse_json(value):
 
 
 def load_config(config_file):
-    '''
-    Load configurations
-    '''
     with open(config_file, 'r') as file:
-        return json.load(file)
-
+        if config_file.split('.')[-1] == 'json':
+            return json.load(file)
+        else:
+            return yaml.safe_load(file)
 
 def transform_data(decoded_data):
     parse_json_udf = udf(parse_json, MapType(StringType(), StringType()))

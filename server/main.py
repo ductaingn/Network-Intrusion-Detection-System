@@ -1,66 +1,100 @@
 import json
-import yaml
-import torch
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf
-from pyspark.sql.types import MapType, StringType
+from pyspark.sql.functions import from_json, col
+from pyspark.sql.types import StructType, StructField, StringType
 from model.Classifier import Classifier
-from server.utillities import parse_json, load_config, transform_data, output_results
+import torch
+import pandas as pd
+import os
+import utillities as utils
+import sys
+import logging
+logging.basicConfig(level=logging.INFO)
+try:
+    from pyspark import SparkContext
+    from pyspark import SparkConf
+except ImportError as e:
+    print ("error importing spark modules", e)
+    sys.exit(1)
 
+# Set Hadoop user name
+os.environ['HADOOP_USER_NAME'] = 'hadoop'
 
-def preprocess(batch_data) -> list[torch.Tensor, list]:
+def process(batch_df, batch_id, model:Classifier, spark_session):
     '''
-    Preprocess raw data received from Kafka
-    ---
-
-    Data flow:
-    > Kafka (key, value) pairs  -->  CICFlowmeter table  -->  torch.Tensor batch AND key mapping for data
-
-    batch: torch.Tensor of shape [batch_size, feature_dim]
-    mapping example:
-    mapping = ['192.168.1.2', '192.168.2.1','192.168.1.2',...,'192.168.1.220] (len(mapping) = batch_size)
+    Function to process each micro-batch
     '''
-    batch = []
-    mapping = []
-    for row in batch_data:
-        # Convert the parsed data to a suitable format for the CICFlowmeter
+    if batch_df.isEmpty():
+        print(f"Batch {batch_id} is empty.")
+        return
+    
+    # Convert Spark DataFrame to pandas DataFrame
+    pandas_df:pd.DataFrame = batch_df.toPandas()
+    keys = pandas_df['key']
+    pandas_df = pandas_df.drop(['key'],axis=1)
 
-        # YOUR CODE HERE!
+    # Function to remove brackets and convert to integer
+    def clean_value(value):
+        if value is not None: # cwe_flag_count column
+            return float(value.strip('[""]'))
+        else:
+            return 0 # cwe_flag_count isn't produced by your Producer or PacketAnalyzer
 
-    return batch, mapping
+    # Apply the function to all columns
+    pandas_df = pandas_df.map(clean_value)
+    
+    # Make predictions
+    with torch.no_grad():
+        x = torch.tensor(pandas_df.astype(float).values, dtype=torch.float32).view(-1, 52)
+        out = model(x)
+        prediction = model.get_class(out)
+        pandas_df['prediction'] = prediction
+    
+    # Convert pandas DataFrame to dictionary
+    pandas_df_dict = pandas_df.to_dict(orient='records')
 
+    # Create a new DataFrame with 'key' and 'value' columns
+    new_pandas_df = pd.DataFrame({
+        'key': keys,
+        'value': [json.dumps(record) for record in pandas_df_dict]
+    })
+    try:
+        new_pandas_df.to_csv('df.csv', index=False)
+        logging.info("DataFrame successfully saved to df.csv")
+    except Exception as e:
+        logging.error(f"Failed to save DataFrame to df.csv: {e}")
 
-def process_batch(model: Classifier, batch_df, batch_id):
-    '''
-    Pipeline
-    '''
-    batch_data = batch_df.collect()
-    attack_prop = model(batch_data)
-    prediction = model.get_class(attack_prop)
-    output_results(prediction)
+    # Convert the new pandas DataFrame back to Spark DataFrame
+    batch_df = spark_session.createDataFrame(new_pandas_df)
+    # Convert the pandas DataFrame back to Spark DataFrame
+    # batch_df = spark_session.createDataFrame(pandas_df)
+
+    print(new_pandas_df)
+    # return batch_df
 
 
 if __name__ == '__main__':
-    config = load_config('configs.json')
-    with open('server/model/model_configs.yaml', 'rb') as file:
-        model_config = yaml.safe_load(file)
+    config = utils.load_config('configs.json')
 
-    # Kafka Configuration
+    # Kafka and Spark Configuration
     kafka_config = config["kafka"]
+    kafka_output_config = config["kafka_output"]
     spark_config = config['spark']
+    hadoop_config = config['hadoop']
 
-    # Create Spark Session
+    # Classifier Configuration
+    model_config = utils.load_config('model/model_configs.yaml')
+    attributes = model_config['attributes']
+    
+    # Define the schema of the JSON data
+    schema = StructType([StructField(attr, StringType(), True) for attr in attributes])
+
+    # Create a SparkSession
     spark_session = SparkSession.builder \
-        .appName("KafkaTorchExample") \
+        .appName("KafkaStreamExample") \
         .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1') \
         .master(f"spark://{spark_config['master']}") \
         .getOrCreate()
-
-    # Load the PyTorch model
-    model = Classifier(
-        model_config['input_dim'], model_config['output_dim'], model_config['mapper'])
-    model.load_state_dict(torch.load("model/model.pth"))
-    model.eval()  # Set model to evaluation mode
 
     # Read the Kafka stream
     df = spark_session.readStream \
@@ -69,14 +103,62 @@ if __name__ == '__main__':
         .option("subscribe", kafka_config['topic']) \
         .load()
 
-    decoded_data = df.selectExpr(
-        "CAST(key AS STRING)", "CAST(value AS STRING)")
-    transformed_data = transform_data(decoded_data)
+    # Parse the value column as JSON
+    kafka_data = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)") \
+                   .withColumn("json_data", from_json(col("value"), schema)) \
+                   .select("key", "json_data.*")
 
-    # Execute streaming query
-    query = transformed_data.writeStream \
-        .foreachBatch(process_batch) \
+    # Define PyTorch model
+    model = Classifier(
+        model_config['architecture']['input_dim'], model_config['architecture']['output_dim'], model_config['mapper'],
+        model_config['learning_rate'])
+    model.load_state_dict(torch.load("model/model.pth")['model_state_dict'])
+    model.eval() 
+
+    # Write the stream using foreachBatch (Use this for debugging)
+    query = kafka_data.writeStream \
+        .foreachBatch(lambda batch_df, batch_id: process(batch_df, batch_id, model)) \
+        .outputMode("append") \
+        .format("console") \
         .start()
 
-    # Wait for the streaming to finish
+    # Write the classified data stream to Kafka output topic
+    # query = df.writeStream \
+    #     .foreachBatch(lambda batch_df, batch_id: process(batch_df, batch_id, model, spark_session)) \
+    #     .outputMode("append") \
+    #     .format("kafka") \
+    #     .option("kafka.bootstrap.servers", kafka_output_config['bootstrap_servers']) \
+    #     .option("topic", kafka_output_config['topic']) \
+    #     .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
+    #     .start()
+    
+    # Await termination of the stream
     query.awaitTermination()
+
+    # # Read the classified data stream from the Kafka output topic (Testing feature for visualizing data)
+    # result_df = spark_session.read \
+    #     .format("kafka") \
+    #     .option("kafka.bootstrap.servers", kafka_output_config['bootstrap_servers']) \
+    #     .option("subscribe", kafka_output_config['topic']) \
+    #     .load()
+        
+    # result_df.show()
+    # # Show the DataFrame
+    # query = result_df.writeStream \
+    #     .outputMode("append") \
+    #     .format("console") \
+    #     .start()
+        
+    # query.awaitTermination()
+    # print(result_df)
+
+
+    # Write to HDFS (Comment this out if you dont have a HDFS server)
+    # query = kafka_data.writeStream \
+    #     .outputMode("append") \
+    #     .format("csv")  \
+    #     .option("path", f'hdfs://{hadoop_config['hdfs_server']}/{hadoop_config['write_location']}') \
+    #     .option("checkpointLocation", f'hdfs://{hadoop_config['hdfs_server']}/{hadoop_config['checkpoint_location']}') \
+    #     .start()
+
+    # query.awaitTermination()

@@ -3,6 +3,10 @@
       "bootstrap_servers": "localhost:9092",
       "topic": "test"
     },
+    "kafka_output": {
+      "bootstrap_servers": "localhost:9092",
+      "topic": "testOutput"
+    },
     "pyshark": {
       "interface": "wlp1s0",
       "send_every": 1,
@@ -13,7 +17,7 @@
       "master": "nguyen-Lenovo-ThinkBook-14p-Gen-2:7077"   
     },
     "hadoop":{
-      "hdfs_server":"192.168.90.20:9000",
+      "hdfs_server":"localhost:9000",
       "write_location":"/user/hadoop/test",
       "checkpoint_location":"/user/hadoop/test/checkpoint"
     }
