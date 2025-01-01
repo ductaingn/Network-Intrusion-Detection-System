@@ -2,15 +2,11 @@ import json
 from model.PacketAnalyzer import PacketAnalyzer
 from model.Pyshark import PysharkLiveCapture
 from model.Producer import Producer
-
-
-def load_config(config_file):
-    with open(config_file, 'r') as file:
-        return json.load(file)
-
+import utilities as utils
 
 if __name__ == '__main__':
-    config = load_config('configs.json')
+    config = utils.load_config('configs.json')
+    my_ip = utils.get_ip()
 
     # Extract Kafka configuration
     kafka_config = config["kafka"]
@@ -36,12 +32,12 @@ if __name__ == '__main__':
                 continue
 
             for flow in result:
-                producer.send_data(key=f'testing_key_{i}', value=json.dumps(flow))
+                producer.send_data(key=f'{my_ip}', value=json.dumps(flow))
                 print('Sent', json.dumps(flow))
 
         except Exception as e:
             print(f"Error sending at packet {i}: {e}")
 
+        producer.kafka_producer.flush()  # Ensure all messages are sent before exiting
         # break
 
-    producer.kafka_producer.flush()  # Ensure all messages are sent before exiting
