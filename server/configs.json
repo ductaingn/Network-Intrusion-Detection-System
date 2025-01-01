@@ -14,7 +14,7 @@
       "bpf_filter": "tcp"
     },
     "spark": {
-      "master": "nguyen-Lenovo-ThinkBook-14p-Gen-2:7077"   
+      "master": "localhost:7077"   
     },
     "hadoop":{
       "hdfs_server":"localhost:9000",

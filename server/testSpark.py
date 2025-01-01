@@ -9,8 +9,6 @@ import os
 import utillities as utils
 import sys
 import yaml
-sys.path.append("/home/nguyen/Projects/Big Data Storage and Processing/Source Code/server/utillities.py")
-
 try:
     from pyspark import SparkContext
     from pyspark import SparkConf
@@ -33,6 +31,7 @@ def process(batch_df, batch_id, model:Classifier, spark_session):
     
     # Convert Spark DataFrame to pandas DataFrame
     pandas_df:pd.DataFrame = batch_df.toPandas()
+    keys = pandas_df['key']
     pandas_df = pandas_df.drop(['key'],axis=1)
 
     # Function to remove brackets and convert to integer
@@ -51,11 +50,35 @@ def process(batch_df, batch_id, model:Classifier, spark_session):
         out = model(x)
         prediction = model.get_class(out)
         pandas_df['prediction'] = prediction
+        pandas_df['key'] = keys
         
-    # Convert the pandas DataFrame back to Spark DataFrame
-    df = spark_session.createDataFrame(pandas_df)
+    # Convert pandas DataFrame to the desired format
+    pandas_df = pandas_df.set_index('key').apply(lambda row: row.to_dict(), axis=1).reset_index()
+    pandas_df.columns = ['key', 'value']
 
-    return df
+    # Serialize 'value' column into JSON strings
+    pandas_df['value'] = pandas_df['value'].apply(json.dumps)
+
+    # Convert the pandas DataFrame back to Spark DataFrame
+    batch_df = spark_session.createDataFrame(pandas_df)
+    
+    # Ensure 'value' column is of type StringType
+    batch_df = batch_df.withColumn("value", batch_df["value"].cast(StringType()))
+    
+    # Write the classified data to the Kafka output topic
+    batch_df.write \
+        .format("kafka") \
+        .option("kafka.bootstrap.servers", kafka_output_config['bootstrap_servers']) \
+        .option("topic", kafka_output_config['topic']) \
+        .save()
+
+    # Write the classified data to HDFS
+    # batch_df.write \
+    #     .mode("append") \
+    #     .format("csv")  \
+    #     .option("path", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["write_location"]}') \
+    #     .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
+    #     .save()
 
 # Function to load configuration from a file
 def load_config(config_file):
@@ -67,7 +90,7 @@ def load_config(config_file):
 
 # Main execution
 if __name__ == '__main__':
-    config = load_config('configs.json')
+    config = utils.load_config('configs.json')
 
     # Kafka and Spark Configuration
     kafka_config = config["kafka"]
@@ -76,7 +99,7 @@ if __name__ == '__main__':
     hadoop_config = config['hadoop']
 
     # Classifier Configuration
-    model_config = load_config('model/model_configs.yaml')
+    model_config = utils.load_config('model/model_configs.yaml')
     attributes = model_config['attributes']
     
     # Define the schema of the JSON data
@@ -110,20 +133,9 @@ if __name__ == '__main__':
 
     # Write the stream using foreachBatch (Use this for debugging)
     query = kafka_data.writeStream \
-        .foreachBatch(lambda batch_df, batch_id: process(batch_df, batch_id, model)) \
+        .foreachBatch(lambda batch_df, batch_id: process(batch_df, batch_id, model, spark_session)) \
         .outputMode("append") \
-        .format("console") \
         .start()
-
-    # Write the classified data stream to Kafka output topic
-    # query = df.writeStream \
-    #     .foreachBatch(lambda batch_df, batch_id: process(batch_df, batch_id, model, spark_session)) \
-    #     .outputMode("append") \
-    #     .format("kafka") \
-    #     .option("kafka.bootstrap.servers", kafka_output_config['bootstrap_servers']) \
-    #     .option("topic", kafka_output_config['topic']) \
-    #     .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
-    #     .start()
     
     # Await termination of the stream
     query.awaitTermination()
@@ -135,23 +147,11 @@ if __name__ == '__main__':
     #     .option("subscribe", kafka_output_config['topic']) \
     #     .load()
         
-    # result_df.show()
+    # # result_df.show()
     # # Show the DataFrame
     # query = result_df.writeStream \
     #     .outputMode("append") \
     #     .format("console") \
     #     .start()
         
-    # query.awaitTermination()
-    # print(result_df)
-
-
-    # Write to HDFS (Comment this out if you dont have a HDFS server)
-    # query = kafka_data.writeStream \
-    #     .outputMode("append") \
-    #     .format("csv")  \
-    #     .option("path", f'hdfs://{hadoop_config['hdfs_server']}/{hadoop_config['write_location']}') \
-    #     .option("checkpointLocation", f'hdfs://{hadoop_config['hdfs_server']}/{hadoop_config['checkpoint_location']}') \
-    #     .start()
-
     # query.awaitTermination()
