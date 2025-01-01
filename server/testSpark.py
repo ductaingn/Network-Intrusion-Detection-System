@@ -73,12 +73,12 @@ def process(batch_df, batch_id, model:Classifier, spark_session):
         .save()
 
     # Write the classified data to HDFS
-    # batch_df.write \
-    #     .mode("append") \
-    #     .format("csv")  \
-    #     .option("path", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["write_location"]}') \
-    #     .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
-    #     .save()
+    batch_df.write \
+        .mode("append") \
+        .format("csv")  \
+        .option("path", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["write_location"]}') \
+        .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
+        .save()
 
 # Function to load configuration from a file
 def load_config(config_file):
