@@ -13,15 +13,15 @@
 cd ~/kafka/kafka_2.13-3.9.0/
 bin/zookeeper-server-start.sh config/zookeeper.properties
 bin/kafka-server-start.sh config/server.properties
-bin/kafka-topics.sh --create --topic test --bootstrap-server localhost:9092 
-bin/kafka-topics.sh --create --topic testOutput --bootstrap-server localhost:9092 
+bin/kafka-topics.sh --create --topic test --bootstrap-server <<YOUR IP ADDRESS>>:9092 
+bin/kafka-topics.sh --create --topic testOutput --bootstrap-server <<YOUR IP ADDRESS>>:9092 
 ```
 
 3. Start your Spark master and add a worker
 ```
 cd ~/spark/spark-3.5.3-bin-hadoop3/sbin
-start-master.sh --host localhost --port 7077
-start-worker.sh spark://localhost:7077 
+start-master.sh --host <<YOUR IP ADDRESS>> --port 7077
+start-worker.sh spark://<<YOUR IP ADDRESS>>:7077 
 ```
 4. Run 
 ```
