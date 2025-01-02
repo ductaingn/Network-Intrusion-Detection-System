@@ -6,20 +6,18 @@ import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
 import {
   Box,
   Card,
-  Chip,
   Stack,
   useTheme,
   Typography,
   CardContent,
 } from "@mui/material";
 
-const StatCard = ({ columnName, chartColor, hiThre, meThre }) => {
+const StatCard = ({ nameChart, columnName, chartColor }) => {
   const theme = useTheme();
   const { data, currentData } = useData();
 
   const [value, setValue] = useState(0);
   const [last50Data, setLast50Data] = useState([]);
-  const [chipValue, setChipValue] = useState({});
 
   useEffect(() => {
     if (!data) {
@@ -48,31 +46,9 @@ const StatCard = ({ columnName, chartColor, hiThre, meThre }) => {
 
     setValue(validCurrentValue);
 
-    if (validCurrentValue > hiThre) {
-      setChipValue({
-        bgColor: theme.palette.error.light,
-        textColor: theme.palette.error.dark,
-        borderColor: theme.palette.error.main,
-        level: "high",
-      });
-    } else if (validCurrentValue > meThre) {
-      setChipValue({
-        bgColor: theme.palette.warning.light,
-        textColor: theme.palette.warning.dark,
-        borderColor: theme.palette.warning.main,
-        level: "medium",
-      });
-    } else {
-      setChipValue({
-        bgColor: theme.palette.success.light,
-        textColor: theme.palette.success.dark,
-        borderColor: theme.palette.success.main,
-        level: "low",
-      });
-    }
-  }, [data, currentData, columnName, theme, hiThre, meThre]);
+  }, [data, currentData, columnName, theme]);
 
-  const title = columnName;
+  const title = nameChart || columnName;
   const randomId = Math.floor(Math.random() * 1000);
 
   return (
@@ -88,16 +64,6 @@ const StatCard = ({ columnName, chartColor, hiThre, meThre }) => {
           <Stack sx={{ justifyContent: "space-between" }}>
             <Stack direction="row" className="center-horizon">
               <Typography variant="h2">{formatNumber(value)}</Typography>
-              <Chip
-                sx={{
-                  color: chipValue.textColor,
-                  bgcolor: chipValue.bgColor,
-                  borderColor: chipValue.borderColor,
-                  fontWeight: "bold",
-                }}
-                variant="outlined"
-                label={`${chipValue.level}`}
-              />
             </Stack>
             <Typography
               variant="subtitle2"

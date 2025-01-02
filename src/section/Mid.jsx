@@ -10,7 +10,6 @@ const Mid = () => {
         <PieChartCard
           nameChart={"IP Address Under Attack"}
           columnName={"ip_address"}
-          ignoreValue={["0"]}
           top={7}
         />
       </Grid2>
@@ -18,7 +17,6 @@ const Mid = () => {
         <PieChartCard
           nameChart={"Attack Type"}
           columnName={"prediction"} // Ten cot can lay du lieu
-          ignoreValue={["Benign"]}
           top={7}
         />
       </Grid2>
