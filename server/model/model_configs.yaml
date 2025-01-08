@@ -8,8 +8,8 @@ learning_rate: 0.001
 mapper:
   1: 'benign'
   2: 'bot'
-  3: 'brute force -web'
-  4: 'brute force -xss'
+  3: 'brute force-web'
+  4: 'brute force-xss'
   5: 'ddos attack-hoic'
   6: 'dos attacks-goldeneye'
   7: 'dos attacks-hulk'
