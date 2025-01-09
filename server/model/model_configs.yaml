@@ -1,7 +1,7 @@
 architecture:
   input_dim: 52
   hidden_dim:
-  output_dim: 13
+  output_dim: 15
 
 learning_rate: 0.001
 
@@ -11,14 +11,17 @@ mapper:
   3: 'brute force-web'
   4: 'brute force-xss'
   5: 'ddos attack-hoic'
-  6: 'dos attacks-goldeneye'
-  7: 'dos attacks-hulk'
-  8: 'dos attacks-slowhttptest'
-  9: 'dos attacks-slowloris'
-  10: 'ftp-bruteforce'
-  11: 'infilteration'
-  12: 'sql injection'
-  13: 'ssh-bruteforce'
+  6: 'ddos attack-loic-udp'
+  7: 'dos attacks-goldeneye'
+  8: 'dos attacks-hulk'
+  9: 'dos attacks-slowhttptest'
+  10: 'dos attacks-slowloris'
+  11: 'dos attacks-synflood'
+  12: 'ftp-bruteforce'
+  13: 'infilteration'
+  14: 'sql injection'
+  15: 'ssh-bruteforce'
+
 
 attributes: [
   'protocol',
