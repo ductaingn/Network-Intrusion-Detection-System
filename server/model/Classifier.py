@@ -21,13 +21,16 @@ class Classifier(nn.Module):
         self.criterion = nn.CrossEntropyLoss()
         self.learning_rate = learning_rate
         self.output_dim = output_dim
+        self.dropout = nn.Dropout(0.4)
+
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-
-        return self.output(x)
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc3(x))
+        x = torch.softmax(self.output(x), dim=1)
+        return x
 
     def get_class(self, probability):
         '''
@@ -106,8 +109,4 @@ class IDSDataset(Dataset):
         x = self.dataset.iloc[index, :-self.output_dim].values
         y = self.dataset.iloc[index, -self.output_dim:]
 
-        # print(x.columns)
-        # print(y.columns)
-        print(x.shape)
-        print(y.shape)
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
