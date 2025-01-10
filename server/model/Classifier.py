@@ -104,6 +104,10 @@ class IDSDataset(Dataset):
 
     def __getitem__(self, index):
         x = self.dataset.iloc[index, :-self.output_dim].values
-        y = self.dataset.iloc[index, -self.output_dim]
-    
-        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.long)
+        y = self.dataset.iloc[index, -self.output_dim:]
+
+        # print(x.columns)
+        # print(y.columns)
+        print(x.shape)
+        print(y.shape)
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
