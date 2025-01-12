@@ -73,12 +73,12 @@ def process(batch_df, batch_id, model:Classifier, spark_session):
         .save()
 
     # Write the classified data to HDFS
-    # batch_df.write \
-    #     .mode("append") \
-    #     .format("csv")  \
-    #     .option("path", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["write_location"]}') \
-    #     .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
-    #     .save()
+    batch_df.write \
+        .mode("append") \
+        .format("csv")  \
+        .option("path", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["write_location"]}') \
+        .option("checkpointLocation", f'hdfs://{hadoop_config["hdfs_server"]}/{hadoop_config["checkpoint_location"]}') \
+        .save()
 
 # Function to load configuration from a file
 def load_config(config_file):
@@ -107,9 +107,12 @@ if __name__ == '__main__':
 
     # Create a SparkSession
     spark_session = SparkSession.builder \
-        .appName("KafkaStreamExample") \
+        .appName("NetworkIntrusionDetection") \
         .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1') \
         .master(f"spark://{spark_config['master']}") \
+        .config("spark.executor.instances", spark_config['num_executors']) \
+        .config("spark.executor.cores", spark_config['executor_cores']) \
+        .config("spark.executor.memory", spark_config['executor_memory']) \
         .getOrCreate()
 
     # Read the Kafka stream

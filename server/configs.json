@@ -1,10 +1,10 @@
 {
     "kafka": {
-      "bootstrap_servers": "localhost:9092",
+      "bootstrap_servers": "192.168.47.226:9092",
       "topic": "test"
     },
     "kafka_output": {
-      "bootstrap_servers": "localhost:9092",
+      "bootstrap_servers": "192.168.47.226:9092",
       "topic": "testOutput"
     },
     "pyshark": {
@@ -14,10 +14,13 @@
       "bpf_filter": "tcp"
     },
     "spark": {
-      "master": "localhost:7077"   
+      "master": "192.168.47.28:7077",
+      "num_executors": 1,
+      "executor_cores": 1,
+      "executor_memory": "1g"
     },
     "hadoop":{
-      "hdfs_server":"localhost:9000",
+      "hdfs_server":"192.168.47.1:9000",
       "write_location":"/user/hadoop/test",
       "checkpoint_location":"/user/hadoop/test/checkpoint"
     }
